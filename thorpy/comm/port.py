@@ -4,6 +4,7 @@ import threading
 import time
 import queue
 import weakref
+import thorpy
 
 class Port:
     #List to make "quasi-singletons"
@@ -16,11 +17,14 @@ class Port:
         self._lock.acquire()
         self._buffer = b''
         self._unhandled_messages = queue.Queue()
+
         self._serial = serial.Serial(port,
                                      baudrate=115200,
                                      bytesize=serial.EIGHTBITS,
                                      parity=serial.PARITY_NONE,
                                      stopbits=serial.STOPBITS_ONE,
+                                     #write_timeout = 0.1,#rajout
+                                     
                                      rtscts=True)
 
         # The Thorlabs protocol description recommends toggeling the RTS pin and resetting the
@@ -28,16 +32,17 @@ class Port:
         # device does not know what data has reached us of the FTDI RS232 converter.
         # Similarly, we do not know the state of the controller input buffer.
         # Be toggling the RTS pin, we let the controller know that it should flush its caches.
-        self._serial.setRTS(1)
+        self._serial.setRTS(0)
         time.sleep(0.05)
         self._serial.reset_input_buffer()
         self._serial.reset_output_buffer()
+        self._serial.setRTS(1)
         time.sleep(0.05)
-        self._serial.setRTS(0)
+							  
 
         self._port = port
         self._debug = False
-        
+		
         from ..message import MGMSG_HW_NO_FLASH_PROGRAMMING, MGMSG_HW_REQ_INFO, MGMSG_HW_START_UPDATEMSGS, MGMSG_HW_STOP_UPDATEMSGS
         self.send_message(MGMSG_HW_NO_FLASH_PROGRAMMING(source = 0x01, dest = 0x50))
 
@@ -51,31 +56,41 @@ class Port:
         while self._info_message is None:
             self.send_message(MGMSG_HW_REQ_INFO())
             try:
-                self._info_message = self._recv_message(blocking = True)
+                # print("while : try")
+                message = self._recv_message(blocking = True)
+                if isinstance(message,thorpy.message.systemcontrol.MGMSG_HW_GET_INFO) :
+                    self._info_message = message
             except: # TODO: Be more specific on what we catch here
+                print ("while : except")
                 self._buffer = b''
                 self._serial.flushInput()
-                
+
         self._serial_number = int(sn)
         if self._serial_number is None:
             self._serial_number = self._info_message['serial_number']
             
         time.sleep(1)
-            
+        print("Port : send message 3")    
+        
+        #statut chaque 100ms :
         self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
             
         self._stages = weakref.WeakValueDictionary()
         
         self._lock.release()
         self.daemon = False
+        # self.daemon = True
         print("Constructed: {0!r}".format(self))
         
         self._thread_main = threading.current_thread()
         self._thread_worker_initialized = threading.Event()
         self._thread_worker = threading.Thread(target = Port.run, args = (weakref.proxy(self), ))
+        self._thread_worker.daemon = True
         self._thread_worker.start()
         
         self._thread_worker_initialized.wait()
+        print("Port : fin init")
+        time.sleep(5)
         
 
     def __del__(self):
@@ -90,11 +105,11 @@ class Port:
             
     @staticmethod
     def run(self):
+        print("THREAD RUN") 
         try:
             self._continue = True
             timeout = 1
             self._thread_worker_initialized.set()
-            
             while self._thread_main.is_alive():
                 #Trick to avoid holding lock
                 r, w, e = select.select([self._serial], [], [], timeout)
@@ -107,6 +122,7 @@ class Port:
                         
             self._serial.close()
         except ReferenceError:
+            print("EXCEPT : STOP RUN")
             pass  #Object deleted
 
         
@@ -127,9 +143,11 @@ class Port:
             return self._serial.fileno()
         
     def recv_message(self, block = True, timeout = None):
-        try:
+        try:    
+            print("recv_message : try ")
             return self._unhandled_messages.get(block, timeout)
         except queue.Empty:
+            print("recv_message except")
             return None
     
     def _recv_message(self, blocking = False, timeout = None):
@@ -141,6 +159,7 @@ class Port:
                 try:
                     msg = Message.parse(self._buffer)
                 except IncompleteMessageException:
+                    # print("_recv_message : IncompleteExcept")
                     msg = None
                     length = self._recv(blocking = blocking)
                     
@@ -149,7 +168,8 @@ class Port:
                         return None
                     
                     #Passed timeout...
-                    if blocking and timeout is not None and start_time < time.time() - timeout:
+                    if blocking and timeout is not None and timeout < time.time() - start_time:
+                        print("timeout ",timeout,time.time() - start_time)
                         return None
                     
             
@@ -179,19 +199,30 @@ class Port:
     
     @classmethod
     def create(cls, port, sn):
+        print("Create: port, sn : ", port, sn)
+        print("Port.static_port_list : ",Port.static_port_list)
+        # print("Port.static_port_list[port] : ",Port.static_port_list[port])
         with Port.static_port_list_lock:
+            print("Create : with")
             try:
+
                 return Port.static_port_list[port]
-            except KeyError:
+            except KeyError as e:
+                print("Create : Keyerror  : ", str(e))
                 #Do we have a BSC103 or BBD10x? These are card slot controllers
                 if sn[:2] in ('70', '73', '94'):
+                    print("Create : CardSlotPort")
                     p = CardSlotPort(port, sn)
+                    
                 else:
+                    print("Create : SingleControllerPort")
                     p = SingleControllerPort(port, sn)
-            
+                    
+                    print("Create : fin create")
                 Port.static_port_list[port] = p
             
                 return p
+
 
 class CardSlotPort(Port):
     def __init__(self, port, sn = None):
@@ -199,6 +230,7 @@ class CardSlotPort(Port):
 
 class SingleControllerPort(Port):
     def __init__(self, port, sn = None):
+        print("SingleControllerPort init, port, sn :", port , sn)
         super().__init__(port, sn)
         
         if self.channel_count != 1:
