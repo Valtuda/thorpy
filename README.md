@@ -2,7 +2,7 @@
 
 Python library implementing Thorlabs APT communication protocol
 
-2019-10-17 : Adapated from UniNE-CHYN/thorpy to work with Thorlabs BSC201 and stepper motor.
+2019-10-17 : Adapted from UniNE-CHYN/thorpy to work with Thorlabs BSC201 and stepper motor.
 
 ## License
 
