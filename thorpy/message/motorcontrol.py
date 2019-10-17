@@ -520,7 +520,7 @@ class MGMSG_MOT_GET_STATUSUPDATE(Message):
     """
     id = 0x481
     is_long_cmd = True
-    parameters = [('chan_ident', 'H'), ('position', 'i'), ('enc_count', 'I'), ('status_bits', 'I')]
+    parameters = [('chan_ident', 'H'), ('position', 'i'), ('enc_count', 'I'), ('status_bits', 'I'),('chan2','H'),('empty1','I'),('empty2','I'),('empty3','I')]
 
 
 class MGMSG_MOT_GET_TRIGGER(Message):
@@ -687,6 +687,44 @@ class MGMSG_MOT_MOVE_RELATIVE_short(Message):
     id = 0x448
     parameters = [('chan_ident', 'B'), (None, 'B')]
 
+class MGMSG_MOT_SET_MOVERELPARAMS(Message) :
+    """
+        Used to set the relative move parameters for the specified motor
+        channel. The only significant parameter at this time is the relative
+        move distance itself. This gets stored by the controller and is used
+        the next time a relative move is initiated.
+
+        :param chan_ident: channel number (0x01, 0x02)
+        :type chan_ident: int
+        :param relative_distance: The distance to move. Conversion should be done
+            as in :class:`~thorpy.stages.GenericStage`.
+        :type relative_distance: int
+    """
+
+    id = 0x445
+    is_long_cmd = True
+    parameters = [('chan_ident', 'H'), ('relative_distance', 'i')]
+
+class MGMSG_MOT_REQ_MOVERELPARAMS(Message) :
+    """
+        :param chan_ident: channel number (0x01, 0x02)
+        :type chan_ident: int
+    """
+    id = 0x446
+    parameters = [('chan_ident', 'H')]
+
+class MGMSG_MOT_GET_MOVERELPARAMS(Message) :
+    """
+        :param chan_ident: channel number (0x01, 0x02)
+        :type chan_ident: int
+        :param relative_distance: The distance to move. Conversion should be done
+            as in :class:`~thorpy.stages.GenericStage`.
+        :type relative_distance: int
+    """
+
+    id = 0x447
+    is_long_cmd = True
+    parameters = [('chan_ident', 'H'), ('relative_distance', 'i')]
 
 class MGMSG_MOT_MOVE_STOP(Message):
     """
