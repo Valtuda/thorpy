@@ -7,11 +7,22 @@ if __name__ == '__main__':
     print(stages)
     s = stages[0]
     
-    s.home()
+    #s.home()
     
+    #s.print_state()
+    
+    #import IPython
+    #IPython.embed()
+    from time import sleep
+    zzz=0
+    while True:
+        print(zzz)
+        zzz+=1
+        sleep(1)
+        if zzz == 20:
+            break
+
     s.print_state()
-    
-    import IPython
-    IPython.embed()
-    
-    #del s, stages
+    #s.home()
+    input()
+    del s, stages

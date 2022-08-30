@@ -41,7 +41,7 @@ class Port:
 							  
 
         self._port = port
-        self._debug = False
+        self._debug = True
 		
         from ..message import MGMSG_HW_NO_FLASH_PROGRAMMING, MGMSG_HW_REQ_INFO, MGMSG_HW_START_UPDATEMSGS, MGMSG_HW_STOP_UPDATEMSGS
         self.send_message(MGMSG_HW_NO_FLASH_PROGRAMMING(source = 0x01, dest = 0x50))
@@ -73,7 +73,7 @@ class Port:
         print("Port : send message 3")    
         
         #statut chaque 100ms :
-        self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
+        #self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
             
         self._stages = weakref.WeakValueDictionary()
         
@@ -88,9 +88,16 @@ class Port:
         self._thread_worker.daemon = True
         self._thread_worker.start()
         
+        # For USB devices, we need to keep the port alivew ith a ACK_DCSTATUSUPDATE message.
+        if 0:#if "USB" in port:
+            self._thread_worker2_initialized = threading.Event()
+            self._thread_worker2 = threading.Thread(target = Port.keep_alive, args = (weakref.proxy(self), ))
+            self._thread_worker2.daemon = True
+            self._thread_worker2.start()
+
+
         self._thread_worker_initialized.wait()
         print("Port : fin init")
-        time.sleep(5)
         
 
     def __del__(self):
@@ -125,7 +132,14 @@ class Port:
             print("EXCEPT : STOP RUN")
             pass  #Object deleted
 
-        
+    @staticmethod
+    def keep_alive(self):
+        from ..message import MGMSG_MOT_REQ_STATUSUPDATE
+        print("KEEP ALIVE RUN") 
+        while self._thread_main.is_alive():
+            time.sleep(0.5)
+            self.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident=1))
+
     def _recv(self, l = 1, blocking = False):
         with self._lock:
             if not blocking:

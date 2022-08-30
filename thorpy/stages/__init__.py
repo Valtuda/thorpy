@@ -94,6 +94,9 @@ def stage_name_from_get_hw_info(m):
         print("controller 40")
         if stage_type == 114:
             return 'HS 17DRV013 25mm'
+    elif controller_type == 4294:
+        if stage_type == 114:
+            return "HS NanoRotator"
     else:
         _print_stage_detection_improve_message(m)
         return None
@@ -111,6 +114,9 @@ class GenericStage:
         self._config = configparser.ConfigParser()
         self._config.read_string(pkgutil.get_data('thorpy.stages','MG17APTServer.ini').decode('ascii'))
         
+
+        if ini_section != "HS NanoRotator":
+            raise Exception("The position, velocity and acceleration conversion factors loaded into this script are specific to the HS NanoRotator. By using this script with any other stage, you will encounter hardcoded values not accounted for in the configuration files. Please modify _posConv, _velConv and _accConv in accordance with the documentation before proceeding.")
 
         self._name = ini_section
         
@@ -220,15 +226,15 @@ class GenericStage:
         print("")
         print("_set_homeparams")
         self._set_homeparams(home_velocity=self._conf_home_vel,
-         home_direction = 1,#self._conf_home_dir,  #replie
-         home_limit_switch = 4, 
-         home_offset_distance = 0.2, #self._conf_home_zero_offset
+         home_direction = self._conf_home_dir,  #replie
+         home_limit_switch = self._conf_home_limit_switch, 
+         home_offset_distance = self._conf_home_zero_offset
          )
         
         print("_set_velparams")
-        self._set_velparams(min_velocity=0,
-         max_velocity=3,
-         acceleration=1
+        self._set_velparams(min_velocity=self._conf_def_min_val,
+         max_velocity=self._conf_def_max_vel,
+         acceleration=self._conf_def_accn
          )
 
 
@@ -242,8 +248,8 @@ class GenericStage:
          )
         
         print("_set_limswitchparams")
-        self._set_limswitchparams(cw_hard_limit = 3 ,
-            ccw_hard_limit = 3,
+        self._set_limswitchparams(cw_hard_limit = self._conf_cw_hard_limit,
+            ccw_hard_limit = self._conf_ccw_hard_limit,
             cw_soft_limit = self._conf_cw_soft_limit,
             ccw_soft_limit = self._conf_ccw_soft_limit,
             software_limit_mode = self._conf_soft_limit_mode
@@ -324,7 +330,7 @@ class GenericStage:
         print("")
 
     def _handle_message(self, msg):
-        
+
 
         # if self._last_ack_sent < time.time() - 0.5:
         #     self._port.send_message(MGMSG_MOT_ACK_DCSTATUSUPDATE())
@@ -336,7 +342,7 @@ class GenericStage:
             # print("handle message",msg)
             self._state_position = msg['position']
             if self._position_callback is not None:
-                self._position_callback(self._state_position / 409600) 
+                self._position_callback(self._state_position / self._posConvFactor) 
             if isinstance(msg, MGMSG_MOT_GET_DCSTATUSUPDATE):
                 self._state_velocity = msg['velocity']
             self._state_status_bits = msg['status_bits']
@@ -344,7 +350,7 @@ class GenericStage:
         
         if isinstance(msg, MGMSG_MOT_MOVE_HOMED):
             if self._position_callback is not None:
-                self._position_callback(self._state_position / 409600) 
+                self._position_callback(self._state_position / self._posConvFactor) 
             return True
         
         if isinstance(msg, MGMSG_MOT_GET_VELPARAMS):
@@ -369,21 +375,21 @@ class GenericStage:
     def position(self):
         self._wait_for_properties(('_state_position', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
         if self._position_callback is not None:
-            self._position_callback(self._state_position / 409600) 
-        return self._state_position / 409600
+            self._position_callback(self._state_position / self._posConvFactor) 
+        return self._state_position / self._posConvFactor
         
 
     @position.setter
     def position(self, new_value):
         assert type(new_value) in (float, int)
-        absolute_distance = int(new_value * 409600)
+        absolute_distance = int(new_value * self._posConvFactor)
         self._port.send_message(MGMSG_MOT_MOVE_ABSOLUTE_long(chan_ident = self._chan_ident, absolute_distance = absolute_distance))
 
     @property
     def velocity(self):
         print("velocity")
         self._wait_for_properties(('_state_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        return self._state_velocity / 21987328  #Dropped the 65536 factor, which resulted in false results
+        return self._state_velocity / self._velConvFactor  #Dropped the 65536 factor, which resulted in false results
 
     @property
     def status_forward_hardware_limit_switch_active(self):
@@ -458,17 +464,17 @@ class GenericStage:
     @property
     def min_velocity(self):
         self._wait_for_properties(('_state_min_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_VELPARAMS(chan_ident = self._chan_ident))
-        return self._state_min_velocity / 21987328
+        return self._state_min_velocity / self._velConvFactor
     
     @property
     def max_velocity(self):
         self._wait_for_properties(('_state_max_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_VELPARAMS(chan_ident = self._chan_ident))
-        return self._state_max_velocity / 21987328
+        return self._state_max_velocity / self._velConvFactor
     
     @property
     def acceleration(self):
         self._wait_for_properties(('_state_acceleration', ), timeout = 3, message = MGMSG_MOT_REQ_VELPARAMS(chan_ident = self._chan_ident))
-        return self._state_acceleration / 4506
+        return self._state_acceleration / self._accConvFactor
     
     @min_velocity.setter
     def min_velocity(self, new_value):
@@ -483,11 +489,17 @@ class GenericStage:
         self._set_velparams(self.min_velocity, self.max_velocity, float(new_value))
 
     def _set_velparams(self, min_velocity, max_velocity, acceleration):
+        if max_velocity > self._conf_max_vel:
+            raise ValueError("Maximum velocity exceeds maximum velocity for this device.")
+        if min_velocity > self._conf_max_vel:
+            raise ValueError("Minimum velocity exceeds maximum velocity for this device.")
+        if acceleration > self._conf_max_acc:
+            raise ValueError("Acceleration exceeds maximum acceleration for this device.")
         msg = MGMSG_MOT_SET_VELPARAMS(
             chan_ident = self._chan_ident,
-            min_velocity = int(min_velocity *21987328),
-            max_velocity = int(max_velocity *21987328),
-            acceleration = int(acceleration * 4506),
+            min_velocity = int(min_velocity * self._velConvFactor),
+            max_velocity = int(max_velocity * self._velConvFactor),
+            acceleration = int(acceleration * self._accConvFactor),
         )
         self._port.send_message(msg)
         #Invalidate current values
@@ -501,7 +513,7 @@ class GenericStage:
     @property
     def home_velocity(self):
         self._wait_for_properties(('_state_home_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_HOMEPARAMS(chan_ident = self._chan_ident))
-        return self._state_home_velocity / 21987328
+        return self._state_home_velocity / self._velConvFactor
     
     @home_velocity.setter
     def home_velocity(self, new_value):
@@ -520,17 +532,20 @@ class GenericStage:
     @property
     def home_offset_distance(self):
         self._wait_for_properties(('_state_home_offset_distance', ), timeout = 3, message = MGMSG_MOT_REQ_HOMEPARAMS(chan_ident = self._chan_ident))
-        return self._state_home_offset_distance / 409600
+        return self._state_home_offset_distance / self._posConvFactor
     
     def _set_homeparams(self, home_velocity, home_direction, home_limit_switch, home_offset_distance):
+        if home_velocity > self._conf_max_vel:
+            raise ValueError("Home velocity exceeds maximum velocity for this stage.")
+
         print("SET HOME PARAM")
         print("")
         msg = MGMSG_MOT_SET_HOMEPARAMS( 
             chan_ident = self._chan_ident,
-            home_velocity = int(home_velocity*21987328),
+            home_velocity = int(home_velocity*self._velConvFactor),
             home_direction = home_direction,
             limit_switch = home_limit_switch,
-            offset_distance = int(home_offset_distance*409600)
+            offset_distance = int(home_offset_distance*self._posConvFactor)
         )
         # print("HOME VELOCITY : ",home_velocity, int(home_velocity *(self._EncCnt * self._T * 65536)))
         self._port.send_message(msg)
@@ -542,13 +557,22 @@ class GenericStage:
 
     
     #Conversion factors
-    # @property
-    # def _EncCnt(self):
-    #     return self._conf_steps_per_rev * self._conf_gearbox_ratio / self._conf_pitch
-    
-    # @property
-    # def _T(self):
-    #     return 2048 / 6e6
+    @property _posConvFactor(self): # Number of microsteps per unit translation/rotation
+        return int(75091/0.99997)
+
+    @property _velConvFactor(self): # Number of microsteps / s
+        return int( self._posConvFactor * 53.68 )  # Conversion factor specific for TST101,KST101,BSC20x,MST602,K10CR1
+
+    @property _accConvFactor(self): # Number of microsteps / s
+        return int( self._posConvFactor / 90.9 )  # Conversion factor specific for TST101,KST101,BSC20x,MST602,K10CR1
+
+    #@property
+    #def _EncCnt(self):
+    #    return self._conf_steps_per_rev * self._conf_gearbox_ratio / self._conf_pitch
+    #
+    #@property
+    #def _T(self):
+    #    return 2048 / 6e6
 
     def _set_jogparams(self, set_jog_mode=2, jog_step_size=0.1, jog_min_velocity=0,jog_acceleration=0.5, jog_max_velocity=1, jog_stop_mode=2):
         print("SET JOG PARAM")
