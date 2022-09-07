@@ -41,7 +41,7 @@ class Port:
 							  
 
         self._port = port
-        self._debug = True
+        self._debug = False
 		
         from ..message import MGMSG_HW_NO_FLASH_PROGRAMMING, MGMSG_HW_REQ_INFO, MGMSG_HW_START_UPDATEMSGS, MGMSG_HW_STOP_UPDATEMSGS
         self.send_message(MGMSG_HW_NO_FLASH_PROGRAMMING(source = 0x01, dest = 0x50))
@@ -73,7 +73,7 @@ class Port:
         print("Port : send message 3")    
         
         #statut chaque 100ms :
-        self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
+        #self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
             
         self._stages = weakref.WeakValueDictionary()
         
@@ -89,7 +89,7 @@ class Port:
         self._thread_worker.start()
         
         # For USB devices, we need to keep the port alivew ith a ACK_DCSTATUSUPDATE message.
-        if 0:#if "USB" in port:
+        if 1:#if "USB" in port:
             self._thread_worker2_initialized = threading.Event()
             self._thread_worker2 = threading.Thread(target = Port.keep_alive, args = (weakref.proxy(self), ))
             self._thread_worker2.daemon = True

@@ -584,10 +584,10 @@ class GenericStage:
         msg =MGMSG_MOT_SET_JOGPARAMS(
             chan_ident = self._chan_ident, 
             jog_mode = set_jog_mode ,
-            jog_step_size=int(jog_step_size*409600), 
-            jog_min_velocity=int(jog_min_velocity*21987328),
-            jog_acceleration=int(jog_acceleration*4506),
-            jog_max_velocity=int(jog_max_velocity*21987328),
+            jog_step_size=int(jog_step_size*self._posConvFactor), 
+            jog_min_velocity=int(jog_min_velocity*self._velConvFactor),
+            jog_acceleration=int(jog_acceleration*self._accConvFactor),
+            jog_max_velocity=int(jog_max_velocity*self._velConvFactor),
             jog_stop_mode=jog_stop_mode
         ) 
         self._port.send_message(msg)
@@ -599,8 +599,8 @@ class GenericStage:
             chan_ident = self._chan_ident, 
             cw_hard_limit=cw_hard_limit,
             ccw_hard_limit=ccw_hard_limit, 
-            cw_soft_limit=int(cw_soft_limit*409600),
-            ccw_soft_limit=int(ccw_soft_limit*409600),
+            cw_soft_limit=int(cw_soft_limit*self._posConvFactor),
+            ccw_soft_limit=int(ccw_soft_limit*self._posConvFactor),
             software_limit_mode=software_limit_mode
         ) 
         self._port.send_message(msg)

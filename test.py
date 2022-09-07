@@ -10,7 +10,7 @@ if __name__ == '__main__':
     #s.home()
     
     s.print_state() 
-    #s.home_non_blocking()
+    s.home_non_blocking()
     #import IPython
     #IPython.embed()
     from time import sleep
@@ -20,12 +20,12 @@ if __name__ == '__main__':
         s.print_state()
         zzz+=1
         sleep(1)
-        if zzz == 10:
+        if zzz == 5:
             break
 
-    #s.print_state()
-    #s.move_jog(1)
-
-    #s.print_state()
+    s.print_state()
+    s.move_jog(1)
+    sleep(3)
+    s.print_state()
     input()
     del s, stages
