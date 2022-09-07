@@ -557,13 +557,16 @@ class GenericStage:
 
     
     #Conversion factors
-    @property _posConvFactor(self): # Number of microsteps per unit translation/rotation
+    @property 
+    def _posConvFactor(self): # Number of microsteps per unit translation/rotation
         return int(75091/0.99997)
 
-    @property _velConvFactor(self): # Number of microsteps / s
+    @property
+    def _velConvFactor(self): # Number of microsteps / s
         return int( self._posConvFactor * 53.68 )  # Conversion factor specific for TST101,KST101,BSC20x,MST602,K10CR1
 
-    @property _accConvFactor(self): # Number of microsteps / s
+    @property
+    def _accConvFactor(self): # Number of microsteps / s
         return int( self._posConvFactor / 90.9 )  # Conversion factor specific for TST101,KST101,BSC20x,MST602,K10CR1
 
     #@property
