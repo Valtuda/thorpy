@@ -73,7 +73,7 @@ class Port:
         print("Port : send message 3")    
         
         #statut chaque 100ms :
-        #self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
+        self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
             
         self._stages = weakref.WeakValueDictionary()
         

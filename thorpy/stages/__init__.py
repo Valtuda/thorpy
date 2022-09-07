@@ -232,7 +232,7 @@ class GenericStage:
          )
         
         print("_set_velparams")
-        self._set_velparams(min_velocity=self._conf_def_min_val,
+        self._set_velparams(min_velocity=self._conf_def_min_vel,
          max_velocity=self._conf_def_max_vel,
          acceleration=self._conf_def_accn
          )
@@ -331,10 +331,11 @@ class GenericStage:
 
     def _handle_message(self, msg):
 
+        # BSC20x doesn't seem to require ACK updates.
 
-        # if self._last_ack_sent < time.time() - 0.5:
-        #     self._port.send_message(MGMSG_MOT_ACK_DCSTATUSUPDATE())
-        #     self._last_ack_sent = time.time()
+        #if self._last_ack_sent < time.time() - 0.5:
+        #    self._port.send_message(MGMSG_MOT_ACK_DCSTATUSUPDATE())
+        #    self._last_ack_sent = time.time()
             
         if isinstance(msg, MGMSG_MOT_GET_DCSTATUSUPDATE) or \
            isinstance(msg, MGMSG_MOT_GET_STATUSUPDATE) or \
@@ -493,7 +494,7 @@ class GenericStage:
             raise ValueError("Maximum velocity exceeds maximum velocity for this device.")
         if min_velocity > self._conf_max_vel:
             raise ValueError("Minimum velocity exceeds maximum velocity for this device.")
-        if acceleration > self._conf_max_acc:
+        if acceleration > self._conf_max_accn:
             raise ValueError("Acceleration exceeds maximum acceleration for this device.")
         msg = MGMSG_MOT_SET_VELPARAMS(
             chan_ident = self._chan_ident,
@@ -609,6 +610,8 @@ class GenericStage:
         return {1: 'mm', 2: '°'}[self._conf_units]
     
     def print_state(self):
+
+
         print("Stage: {0}".format(self._name))
         print("Position: {0:0.03f}{1}".format(self.position, self.units))
         # Velocity information not available with some stages, e.g. LTS300

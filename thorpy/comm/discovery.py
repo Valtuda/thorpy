@@ -9,7 +9,7 @@ def discover_stages():
     
     for dev in usb.core.find(find_all=True, custom_match= lambda x: x.bDeviceClass != 9):
         try:
-            #print(dev)
+            print(dev)
             #FIXME: this avoids an error related to https://github.com/walac/pyusb/issues/139
             #FIXME: this could maybe be solved in a better way?
             dev._langids = (1033, )
