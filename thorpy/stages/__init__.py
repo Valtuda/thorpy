@@ -560,7 +560,7 @@ class GenericStage:
     #Conversion factors
     @property 
     def _posConvFactor(self): # Number of microsteps per unit translation/rotation
-        return int(75091/0.99997)
+        return int(409600/self._conf_pitch)
 
     @property
     def _velConvFactor(self): # Number of microsteps / s
@@ -653,146 +653,33 @@ class GenericStage:
         print("Velocity parameters: velocity: {0.min_velocity:0.3f}-{0.max_velocity:0.3f}{0.units}/s, acceleration: {0.acceleration:0.3f}{0.units}/s²".format(self))
         print("Homing parameters: velocity: {0.home_velocity:0.3f}{0.units}/s, direction: {0.home_direction}, limit_switch: {0.home_limit_switch}, offset_distance: {0.home_offset_distance:0.3f}{0.units}".format(self))
         
-    def home(self, force = False):
+    def home(self, block = False, force = True,timeout = 60):
+        if self.status_homed and not force:
+           return True
 
-        
-        # self._port.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        # time.sleep(1)
-        # self._port.send_message(MGMSG_MOT_REQ_JOGPARAMS(chan_ident = self._chan_ident))
-        # time.sleep(1)
-        
-
-        # self._port.send_message(MGMSG_MOT_REQ_HOMEPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_PMDSTAGEAXISPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("homing0, homed ?",self.status_in_motion_homing,self.status_homed)
-        # # MGMSG_MOT_SET_JOGPARAMS
-
-        # # self._port.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        # # time.sleep(1)
-        # # self._port.send_message(MGMSG_MOD_REQ_CHANENABLESTATE(chan_ident = self._chan_ident))
-        # # time.sleep(1)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_GENMOVEPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_SET_VELPARAMS(chan_ident = self._chan_ident,\
-        # #     min_velocity=0, \
-        # #     acceleration=4506,\
-        # #     max_velocity= 21987328 ))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_REQ_VELPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_POWERPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_REQ_VELPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(1)
-        # # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_LIMSWITCHPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(1)
-        # # print("---------------------------------------")
-        # # 
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_JOGPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_MOVERELPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_REQ_BOWINDEX(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_SET_POWERPARAMS(chan_ident = self._chan_ident,rest_factor=10,move_factor=100))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_REQ_POWERPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_MOVE_JOG(chan_ident = self._chan_ident,direction=0x01))
-        # # time.sleep(1)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_MOVERELPARAMS(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))
-        # # print("homing1, homed ?",self.status_in_motion_homing,self.status_homed)
-        # # time.sleep(20)
-        # # print("homing2, homed ?",self.status_in_motion_homing,self.status_homed)
-        # print("---------------------------------------")
-
-        # # self._port.send_message(MGMSG_MOT_SET_MOVERELPARAMS(chan_ident = self._chan_ident,relative_distance=409600))
-        # # time.sleep(2)
-        # # print("---------------------------------------")
-        # # self._port.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        
-        # # self._port.send_message(MGMSG_MOT_MOVE_RELATIVE_long(chan_ident = self._chan_ident,relative_distance=409600))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-
-        
+        self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))
+        if timeout:
+            timer = time.time()+timeout
 
 
-        # # self._port.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        # # time.sleep(2)
-        # print("---------------------------------------")
+        if block: 
+            time.sleep(1)
+            while not self.status_homed:
+                time.sleep(3)
 
-        # # self._port.send_message(MGMSG_MOT_MOVE_STOP(chan_ident = self._chan_ident,stop_mode = 1))
-        # # time.sleep(2)
-        # # print("homing3, homed ?",self.status_in_motion_homing,self.status_homed)
-        # # print("---------------------------------------")
-
-        # self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))
-        # for i in range(3):
-        #     print("homing5, homed ?",self.status_in_motion_homing,self.status_homed)
-        #     self._port.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        #     time.sleep(1)
-        # # print("homing4, homed ?",self.status_in_motion_homing,self.status_homed)
-        # # self._port.send_message(MGMSG_MOT_MOVE_STOP(chan_ident = self._chan_ident,stop_mode = 1))
-        # # time.sleep(2)
-        # print("---------------------------------------")
-        # #Disable channel !
-        # # self._port.send_message(MGMSG_MOD_SET_CHANENABLESTATE(chan_ident = self._chan_ident,chan_enable_state = 0x02))
-        # # time.sleep(1)
-        # print("---------------------------------------")
-        # # if self.status_homed and not force:
-        # #     print("home = True")
-        # #     return True
-
-        # print("homing5, homed ?",self.status_in_motion_homing,self.status_homed)
-        
-        self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))    
-        while not self.status_homed:
-            print("homed ?", self.status_homed)
-            print("homing, homed ?",self.status_in_motion_homing,self.status_homed,self.status_in_motion_forward,self.status_in_motion_reverse)
-
-            if not self.status_in_motion_forward and not self.status_in_motion_reverse and not self.status_in_motion_homing:
-                print("home() : while : moving home")
-                self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))
-            time.sleep(3)
+                # I understand what this does, but I don't want to do this.
+                #if not self.status_in_motion_forward and not self.status_in_motion_reverse and not self.status_in_motion_homing:
+                #    self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))
+                
+                if timeout and time.time() > timer:
+                    print("Homing failed within the timeout.")
+                    
+                    return False
 
         return True
 
     def home_non_blocking(self, force = True ):
-        if self.status_homed and not force:
-            return True
-        
-        self._port.send_message(MGMSG_MOT_MOVE_HOME(chan_ident = self._chan_ident))     
-        return True
+        return self.home(block=False,force=force)
 
 
     def move_jog(self,direction):
@@ -802,6 +689,12 @@ class GenericStage:
         self._port.send_message(MGMSG_MOT_MOVE_JOG(chan_ident = self._chan_ident, direction = direction))
         return True
 
+    def move_abs(self,distance):
+        """
+        Distance in stage units (i.e. mm or degrees)
+        """           
+        self._port.send_message(MGMSG_MOT_MOVE_ABSOLUTE_long(chan_ident = self._chan_ident, absolute_distance = int(distance*self._posConvFactor)))
+        return True
 
     def move_stop(self):
         self._port.send_message(MGMSG_MOT_MOVE_STOP(chan_ident = self._chan_ident,stop_mode = 1))

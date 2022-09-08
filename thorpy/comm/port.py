@@ -101,8 +101,11 @@ class Port:
         
 
     def __del__(self):
-        print("Destructed: {0!r}".format(self))
+        self._thread_worker2.join() 
         self._thread_worker.join()
+        print("Destructed: {0!r}".format(self))
+
+
             
     def send_message(self, msg):
         with self._lock:
