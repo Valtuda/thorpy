@@ -1,15 +1,21 @@
 from thorpy.comm.discovery import discover_stages
+from thorpy.comm.from_port import from_port
+
 
 if __name__ == '__main__':
     from thorpy.message import *
     
-    stages = list(discover_stages())
-    print(stages)
-    s = stages[0]
+    #stages = list(discover_stages())
+    #print(stages)
+    #s = stages[0]
     
+    s = from_port("/dev/ttyUSB0");
+
     #s.home()
     
-    s.print_state() 
+    s.print_state()
+
+    #quit()
     s.home(block=True)
     #import IPython
     #IPython.embed()

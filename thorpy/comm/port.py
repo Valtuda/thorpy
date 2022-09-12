@@ -11,7 +11,7 @@ class Port:
     static_port_list = weakref.WeakValueDictionary()
     static_port_list_lock = threading.RLock()
     
-    def __init__(self, port, sn):
+    def __init__(self, port, sn=None):
         super().__init__()
         self._lock = threading.RLock()
         self._lock.acquire()
@@ -65,10 +65,10 @@ class Port:
                 self._buffer = b''
                 self._serial.flushInput()
 
+        if sn is None:
+            sn = self._info_message['serial_number']
+
         self._serial_number = int(sn)
-        if self._serial_number is None:
-            self._serial_number = self._info_message['serial_number']
-            
         time.sleep(1)
         print("Port : send message 3")    
         
@@ -215,9 +215,9 @@ class Port:
         return {}
     
     @classmethod
-    def create(cls, port, sn):
+    def create(cls, port, sn=None):
         print("Create: port, sn : ", port, sn)
-        print("Port.static_port_list : ",Port.static_port_list)
+        print("Port.static_port_list : ",list(Port.static_port_list))
         # print("Port.static_port_list[port] : ",Port.static_port_list[port])
         with Port.static_port_list_lock:
             print("Create : with")
@@ -227,7 +227,7 @@ class Port:
             except KeyError as e:
                 print("Create : Keyerror  : ", str(e))
                 #Do we have a BSC103 or BBD10x? These are card slot controllers
-                if sn[:2] in ('70', '73', '94'):
+                if sn != None and sn[:2] in ('70', '73', '94'):
                     print("Create : CardSlotPort")
                     p = CardSlotPort(port, sn)
                     
