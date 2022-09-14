@@ -329,6 +329,57 @@ class GenericStage:
         print("---------------------------------------------------------")
         print("")
 
+    # Return a dictionary with all properties of the device.
+    # Based off the print_state command above.
+    def to_dict(self):
+        _dict = dict()
+            
+        flags = []
+
+        if self.status_forward_hardware_limit_switch_active:
+            flags.append("forward hardware limit switch is active")
+        if self.status_reverse_hardware_limit_switch_active:
+            flags.append("reverse hardware limit switch is active")
+        if self.status_in_motion_forward or self.status_in_motion_reverse or self.status_in_motion_jogging_forward or self.status_in_motion_jogging_reverse or self.status_in_motion_homing:
+            flags.append('in motion')
+        if self.status_in_motion_forward:
+            flags.append('moving forward')
+        if self.status_in_motion_reverse:
+            flags.append('moving reverse')
+        if self.status_in_motion_jogging_forward:
+            flags.append('jogging forward')
+        if self.status_in_motion_jogging_reverse:
+            flags.append('jogging reverse')
+        if self.status_in_motion_homing:
+            flags.append('homing')
+        if self.status_homed:
+            flags.append('homed')
+        if self.status_tracking:
+            flags.append('tracking')
+        if self.status_settled:
+            flags.append('settled')
+        if self.status_motion_error:
+            flags.append('motion error')
+        if self.status_motor_current_limit_reached:
+            flags.append('motor current limit reached')
+        if self.status_channel_enabled:
+            flags.append('channel enabled')
+        
+
+        _dict["status"] = flags
+
+        _dict["min_velocity"] = self.min_velocity
+        _dict["max_velocity"] = self.max_velocity
+        _dict["acceleration"] = self.acceleration
+        
+        _dict["stage"] = self._name
+        
+        _dict["position"] = self.position
+        _dict["units"]    = self.units
+
+        return _dict
+
+
     def _handle_message(self, msg):
 
         # BSC20x doesn't seem to require ACK updates.

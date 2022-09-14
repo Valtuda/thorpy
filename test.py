@@ -17,8 +17,12 @@ if __name__ == '__main__':
 
     #quit()
     s.home(block=True)
-    #import IPython
-    #IPython.embed()
+
+    #quit()
+    import IPython
+    IPython.embed()
+    
+    quit()
     from time import sleep
     zzz=0
     while True:
