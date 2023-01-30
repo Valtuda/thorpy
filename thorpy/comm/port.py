@@ -41,7 +41,7 @@ class Port:
 							  
 
         self._port = port
-        self._debug = True
+        self._debug = False
 		
         from ..message import MGMSG_HW_NO_FLASH_PROGRAMMING, MGMSG_HW_REQ_INFO, MGMSG_HW_START_UPDATEMSGS, MGMSG_HW_STOP_UPDATEMSGS
         self.send_message(MGMSG_HW_NO_FLASH_PROGRAMMING(source = 0x01, dest = 0x50))
@@ -73,7 +73,7 @@ class Port:
         print("Port : send message 3")    
         
         #statut chaque 100ms :
-        #self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1))
+        #self.send_message(MGMSG_HW_START_UPDATEMSGS(update_rate = 1)) # This didn't seem to work for my stages
             
         self._stages = weakref.WeakValueDictionary()
         
@@ -137,11 +137,11 @@ class Port:
 
     @staticmethod
     def keep_alive(self):
-        from ..message import MGMSG_MOT_REQ_STATUSUPDATE
+        from ..message import MGMSG_MOT_REQ_STATUSBITS
         print("KEEP ALIVE RUN") 
         while self._thread_main.is_alive():
             time.sleep(0.5)
-            self.send_message(MGMSG_MOT_REQ_STATUSUPDATE(chan_ident=1))
+            self.send_message(MGMSG_MOT_REQ_STATUSBITS(chan_ident=1))
 
     def _recv(self, l = 1, blocking = False):
         with self._lock:

@@ -399,7 +399,20 @@ class GenericStage:
                 self._state_velocity = msg['velocity']
             self._state_status_bits = msg['status_bits']
             return True
-        
+       
+        # Needed by K100CR stage as it does not support STATUSUPDATE
+        if isinstance(msg, MGMSG_MOT_GET_STATUSBITS):
+            self._state_status_bits = msg['status_bits']
+
+            return True
+
+        # Added for K100CR
+        if isinstance(msg, MGMSG_MOT_GET_POSCOUNTER):
+           if self._position_callback is not None:
+              self._position_callback(self._state_position / self._posConvFactor) 
+           self._state_position = msg['position']
+           return True
+
         if isinstance(msg, MGMSG_MOT_MOVE_HOMED):
             if self._position_callback is not None:
                 self._position_callback(self._state_position / self._posConvFactor) 
@@ -422,12 +435,14 @@ class GenericStage:
         return False
     
     #STATUSUPDATE
-    
+   
+
+    # Position used to query STATUSUPDATE, but some stages don't support this. Since position only needs POSCOUNTER,
+    # I have changed this over.
     @property
     def position(self):
-        self._wait_for_properties(('_state_position', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        if self._position_callback is not None:
-            self._position_callback(self._state_position / self._posConvFactor) 
+        self._wait_for_properties(('_state_position', ), timeout = 3, message = MGMSG_MOT_REQ_POSCOUNTER(chan_ident = self._chan_ident))
+        # Removed callback here, as it's already present in _handle_message.
         return self._state_position / self._posConvFactor
         
 
@@ -436,79 +451,80 @@ class GenericStage:
         assert type(new_value) in (float, int)
         absolute_distance = int(new_value * self._posConvFactor)
         self._port.send_message(MGMSG_MOT_MOVE_ABSOLUTE_long(chan_ident = self._chan_ident, absolute_distance = absolute_distance))
-
-    @property
-    def velocity(self):
-        print("velocity")
-        self._wait_for_properties(('_state_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
-        return self._state_velocity / self._velConvFactor  #Dropped the 65536 factor, which resulted in false results
+   
+    # I don't use this and keeping it around makes it harder.
+    #@property
+    #def velocity(self):
+    #    print("velocity")
+    #    self._wait_for_properties(('_state_velocity', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+    #    return self._state_velocity / self._velConvFactor  #Dropped the 65536 factor, which resulted in false results
 
     @property
     def status_forward_hardware_limit_switch_active(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000001) != 0
 
     @property
     def status_reverse_hardware_limit_switch_active(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000002) != 0
 
     @property
     def status_in_motion_forward(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000010) != 0
 
     @property
     def status_in_motion_reverse(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000020) != 0
 
     @property
     def status_in_motion_jogging_forward(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000040) != 0
 
     @property
     def status_in_motion_jogging_reverse(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000080) != 0
 
     @property
     def status_in_motion_homing(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00000200) != 0
 
     @property
     def status_homed(self):
         # self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_DCSTATUSUPDATE(chan_ident = self._chan_ident))
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         print("status : ",self._state_status_bits , self._state_status_bits & 0x00000400)
         return (self._state_status_bits & 0x00000400) != 0
 
 
     @property
     def status_tracking(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00001000) != 0
 
     @property
     def status_settled(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00002000) != 0
 
     @property
     def status_motion_error(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x00004000) != 0
 
     @property
     def status_motor_current_limit_reached(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x01000000) != 0
 
     @property
     def status_channel_enabled(self):
-        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSUPDATE(chan_ident = self._chan_ident))
+        self._wait_for_properties(('_state_status_bits', ), timeout = 3, message = MGMSG_MOT_REQ_STATUSBITS(chan_ident = self._chan_ident))
         return (self._state_status_bits & 0x80000000) != 0
     
     #VELPARAMS

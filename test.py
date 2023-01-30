@@ -15,8 +15,10 @@ if __name__ == '__main__':
     
     s.print_state()
 
-    quit()
+    #quit()
     s.home(block=True)
+
+    s.print_state()
 
     #quit()
     import IPython
