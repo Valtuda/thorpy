@@ -630,6 +630,14 @@ class GenericStage:
     #    return 2048 / 6e6
 
     def _set_jogparams(self, set_jog_mode=2, jog_step_size=0.1, jog_min_velocity=0,jog_acceleration=0.5, jog_max_velocity=1, jog_stop_mode=2):
+        if jog_max_velocity > self._conf_max_vel:
+            raise ValueError("Maximum velocity exceeds maximum velocity for this device.")
+        if jog_min_velocity > self._conf_max_vel:
+            raise ValueError("Minimum velocity exceeds maximum velocity for this device.")
+        if jog_acceleration > self._conf_max_accn:
+            raise ValueError("Acceleration exceeds maximum acceleration for this device.")
+
+
         print("SET JOG PARAM")
         print("")
         msg =MGMSG_MOT_SET_JOGPARAMS(
