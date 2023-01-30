@@ -41,7 +41,7 @@ class Port:
 							  
 
         self._port = port
-        self._debug = False
+        self._debug = True
 		
         from ..message import MGMSG_HW_NO_FLASH_PROGRAMMING, MGMSG_HW_REQ_INFO, MGMSG_HW_START_UPDATEMSGS, MGMSG_HW_STOP_UPDATEMSGS
         self.send_message(MGMSG_HW_NO_FLASH_PROGRAMMING(source = 0x01, dest = 0x50))

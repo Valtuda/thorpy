@@ -115,8 +115,8 @@ class GenericStage:
         self._config.read_string(pkgutil.get_data('thorpy.stages','MG17APTServer.ini').decode('ascii'))
         
 
-        if ini_section != "HS NanoRotator":
-            raise Exception("The position, velocity and acceleration conversion factors loaded into this script are specific to the HS NanoRotator. By using this script with any other stage, you will encounter hardcoded values not accounted for in the configuration files. Please modify _posConv, _velConv and _accConv in accordance with the documentation before proceeding.")
+        if ini_section not in ["HS NanoRotator","K100CR1 Rotation Stage"]:
+            raise Exception("The position, velocity and acceleration conversion factors loaded into this script are specific to the Trinamics encoded stages and have only been tested with the HS NanoRotator and KC100CR Rotation Stage. By using this script with any other stage, you will encounter hardcoded values not accounted for in the configuration files. Please modify _posConv, _velConv and _accConv in accordance with the documentation before proceeding.")
 
         self._name = ini_section
         
@@ -611,7 +611,7 @@ class GenericStage:
     #Conversion factors
     @property 
     def _posConvFactor(self): # Number of microsteps per unit translation/rotation
-        return int(409600/self._conf_pitch)
+        return int(409600*self._conf_gearbox_ratio/self._conf_pitch)
 
     @property
     def _velConvFactor(self): # Number of microsteps / s
