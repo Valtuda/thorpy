@@ -1,7 +1,8 @@
-#Thorpy
+# Thorpy
 
 Python library implementing Thorlabs APT communication protocol
 
+2022-2023  : Adapted from CidrolinF's version, removed hardcoded values. Tested with HS NanoRotator and KC100R stepper rotators.
 2019-10-17 : Adapted from UniNE-CHYN/thorpy to work with Thorlabs BSC201 and stepper motor.
 
 ## License
