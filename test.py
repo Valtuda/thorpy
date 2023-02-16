@@ -9,7 +9,7 @@ if __name__ == '__main__':
     #print(stages)
     #s = stages[0]
     
-    s = from_port("/dev/ttyUSB0");
+    s = from_port("/dev/ttyUSB0")
 
     #s.home()
     

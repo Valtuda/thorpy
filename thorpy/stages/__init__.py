@@ -340,7 +340,7 @@ class GenericStage:
             flags.append("forward hardware limit switch is active")
         if self.status_reverse_hardware_limit_switch_active:
             flags.append("reverse hardware limit switch is active")
-        if self.status_in_motion_forward or self.status_in_motion_reverse or self.status_in_motion_jogging_forward or self.status_in_motion_jogging_reverse or self.status_in_motion_homing:
+        if self.status_in_motion:
             flags.append('in motion')
         if self.status_in_motion_forward:
             flags.append('moving forward')
@@ -501,6 +501,9 @@ class GenericStage:
         print("status : ",self._state_status_bits , self._state_status_bits & 0x00000400)
         return (self._state_status_bits & 0x00000400) != 0
 
+    @property
+    def status_in_motion(self):
+        return self.status_in_motion_forward or self.status_in_motion_reverse or self.status_in_motion_jogging_forward or self.status_in_motion_jogging_reverse or self.status_in_motion_homing
 
     @property
     def status_tracking(self):
@@ -697,7 +700,7 @@ class GenericStage:
             flags.append("forward hardware limit switch is active")
         if self.status_reverse_hardware_limit_switch_active:
             flags.append("reverse hardware limit switch is active")
-        if self.status_in_motion_forward or self.status_in_motion_reverse or self.status_in_motion_jogging_forward or self.status_in_motion_jogging_reverse or self.status_in_motion_homing:
+        if self.status_in_motion:
             flags.append('in motion')
         if self.status_in_motion_forward:
             flags.append('moving forward')
