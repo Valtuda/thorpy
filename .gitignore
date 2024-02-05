@@ -2,3 +2,6 @@ __pycache__
 *.wpu
 
 thorpy.egg-info
+
+build/
+dist/
